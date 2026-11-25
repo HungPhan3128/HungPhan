@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bettamc.nvnmc.asia:26085 — Máy Chủ Minecraft</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif; }
+    body { background:#0b0c10; color:#fff; min-height:100vh; overflow-x:hidden; }
+
+    /* ===== HIỆU ỨNG NỀN ===== */
+    .bg-glow {
+        position:fixed; width:400px; height:400px; border-radius:50%;
+        filter:blur(120px); opacity:0.15; z-index:0; pointer-events:none;
+    }
+    .glow-1 { background:#55ff55; top:-150px; left:-150px; animation:float 8s ease-in-out infinite; }
+    .glow-2 { background:#00d4ff; bottom:-150px; right:-150px; animation:float 10s ease-in-out infinite reverse; }
+    @keyframes float {
+        0%,100% { transform:translate(0,0); }
+        50% { transform:translate(40px,30px); }
+    }
+
+    /* ===== MENU TRƯỢT ===== */
+    .sidebar {
+        position:fixed; top:0; left:-270px; width:260px; height:100%;
+        background:linear-gradient(180deg, #15161d 0%, #0e0f14 100%);
+        border-right:1px solid #282a36; z-index:100; transition:left 0.35s cubic-bezier(0.4,0,0.2,1);
+        padding:20px 15px; box-shadow:5px 0 30px rgba(0,0,0,0.5);
+    }
+    .sidebar.active { left:0; }
+    .sidebar-header {
+        display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #282a36;
+    }
+    .sidebar-header span { font-weight:bold; color:#55ff55; letter-spacing:2px; font-size:14px; }
+    .sidebar-header i { font-size:20px; cursor:pointer; color:#888; transition:0.2s; }
+    .sidebar-header i:hover { color:#fff; transform:rotate(90deg); }
+    .sidebar-menu { list-style:none; }
+    .sidebar-menu li { margin-bottom:6px; }
+    .sidebar-menu a {
+        color:#ddd; text-decoration:none; font-size:15px; display:flex; align-items:center;
+        gap:12px; padding:12px 14px; border-radius:10px; transition:0.25s; cursor:pointer;
+    }
+    .sidebar-menu a:hover, .sidebar-menu a.active { background:rgba(85,255,85,0.1); color:#55ff55; }
+    .sidebar-menu a i { width:20px; text-align:center; }
+
+    .sidebar-overlay {
+        position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(3px);
+        display:none; z-index:99; opacity:0; transition:opacity 0.3s;
+    }
+    .sidebar-overlay.active { display:block; opacity:1; }
+
+    /* ===== HEADER ===== */
+    .topbar {
+        display:flex; justify-content:space-between; align-items:center;
+        padding:12px 18px; background:rgba(21,22,29,0.9); backdrop-filter:blur(10px);
+        border-bottom:1px solid #282a36; position:sticky; top:0; z-index:50;
+    }
+    .menu-btn {
+        font-size:18px; color:#fff; cursor:pointer; padding:8px 12px;
+        border-radius:8px; transition:0.2s; background:transparent; border:none;
+    }
+    .menu-btn:hover { background:#282a36; color:#55ff55; }
+    .logo { font-size:15px; font-weight:bold; color:#55ff55; letter-spacing:0.5px; text-shadow:0 0 20px rgba(85,255,85,0.4); }
+    .user-box { display:flex; align-items:center; gap:8px; }
+    .user-box span { font-size:13px; color:#ddd; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .avatar {
+        width:34px; height:34px; border-radius:50%;
+        border:2px solid #55ff55; object-fit:cover; display:block;
+        box-shadow:0 0 12px rgba(85,255,85,0.4); cursor:pointer; transition:0.25s;
+    }
+    .avatar:hover { transform:scale(1.1); box-shadow:0 0 20px rgba(85,255,85,0.7); }
+
+    /* ===== QUẢN LÝ CHUYỂN TRANG ===== */
+    .page { display:none; animation:fadeUp 0.4s ease; }
+    .page.active { display:block; }
+
+    .container { padding:30px 15px; max-width:420px; margin:0 auto; position:relative; z-index:1; }
+
+    /* TRANG CHỦ */
+    .server-card {
+        background:linear-gradient(145deg, #15161d, #101218);
+        border:1px solid #282a36; border-radius:16px; padding:16px;
+        display:flex; align-items:center; gap:14px;
+        box-shadow:0 10px 40px rgba(0,0,0,0.4);
+    }
+    .server-icon {
+        width:60px; height:60px; border-radius:12px; object-fit:cover; flex-shrink:0;
+        border:2px solid #282a36;
+    }
+    .server-name { font-size:13px; font-weight:bold; color:#55ff55; font-family:monospace; letter-spacing:0.5px; word-break:break-all; }
+    .server-info { font-size:13px; color:#fff; margin-top:3px; }
+    .server-ver { font-size:12px; color:#aaa; margin-top:3px; }
+
+    .status-dot {
+        display:inline-block; width:8px; height:8px; border-radius:50%;
+        background:#55ff55; margin-right:6px; animation:pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0%,100% { box-shadow:0 0 0 0 rgba(85,255,85,0.5); }
+        50% { box-shadow:0 0 0 6px rgba(85,255,85,0); }
+    }
+
+    .btn-group { display:flex; gap:10px; margin-top:20px; }
+    .btn {
+        flex:1; padding:13px; border-radius:12px; border:none; font-size:14px;
+        font-weight:bold; cursor:pointer; transition:0.25s; display:flex;
+        align-items:center; justify-content:center; gap:8px; text-decoration:none;
+    }
+    .btn-copy { background:linear-gradient(135deg, #2ea043, #55ff55); color:#0b0c10; }
+    .btn-discord { background:#282a36; color:#fff; border:1px solid #3a3d4d; }
+
+    /* KHUNG NỘI DUNG */
+    .content-box {
+        background:linear-gradient(145deg, #15161d, #101218);
+        border:1px solid #282a36; border-radius:16px; padding:20px;
+        box-shadow:0 10px 40px rgba(0,0,0,0.4);
+    }
+    .content-box h2 { color:#55ff55; font-size:18px; margin-bottom:15px; display:flex; align-items:center; gap:10px; }
+    .qa-item { margin-bottom:14px; border-bottom:1px solid #282a36; padding-bottom:10px; }
+    .qa-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+    .qa-q { font-weight:bold; color:#fff; font-size:14px; margin-bottom:4px; }
+    .qa-a { color:#aaa; font-size:13px; line-height:1.5; }
+
+    @keyframes fadeUp {
+        from { opacity:0; transform:translateY(15px); }
+        to { opacity:1; transform:translateY(0); }
+    }
+
+    /* ===== POPUP CÀI ĐẶT PROFILE ===== */
+    .modal-overlay {
+        position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+        z-index:300; display:none; align-items:center; justify-content:center; padding:20px;
+    }
+    .modal-overlay.show { display:flex; }
+    .modal {
+        background:linear-gradient(145deg, #1a1b23, #13141a);
+        border:1px solid #282a36; border-radius:20px; padding:24px;
+        width:100%; max-width:340px;
+        box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    }
+    .modal h3 { color:#55ff55; font-size:17px; margin-bottom:18px; text-align:center; }
+    .avatar-preview-wrap { text-align:center; margin-bottom:16px; }
+    .avatar-preview {
+        width:90px; height:90px; border-radius:50%; object-fit:cover;
+        border:3px solid #55ff55; box-shadow:0 0 25px rgba(85,255,85,0.3);
+    }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:12px; color:#888; margin-bottom:6px; letter-spacing:1px; }
+    .form-group input[type="text"] {
+        width:100%; padding:12px 14px; border-radius:10px; border:1px solid #282a36;
+        background:#0e0f14; color:#fff; font-size:15px; outline:none;
+    }
+    .upload-btn {
+        display:flex; align-items:center; justify-content:center; gap:8px;
+        width:100%; padding:12px; border-radius:10px; border:1px dashed #3a3d4d;
+        background:transparent; color:#aaa; font-size:14px; cursor:pointer;
+    }
+    .modal-actions { display:flex; gap:10px; margin-top:20px; }
+    .modal-actions .btn { padding:12px; font-size:14px; }
+    .btn-save { background:linear-gradient(135deg, #2ea043, #55ff55); color:#0b0c10; flex:2; }
+    .btn-cancel { background:#282a36; color:#aaa; flex:1; }
+
+    .toast {
+        position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px);
+        background:#1f6f2f; color:#fff; padding:12px 24px; border-radius:30px;
+        font-size:14px; z-index:400; opacity:0; transition:0.4s cubic-bezier(0.34,1.56,0.64,1);
+        box-shadow:0 10px 30px rgba(0,0,0,0.5); pointer-events:none;
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    .footer { text-align:center; color:#555; font-size:12px; margin-top:40px; padding-bottom:20px; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<!-- ===== MENU TRƯỢT BÊN TRÁI ===== -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <span><i class="fa-solid fa-cube" style="margin-right:8px;"></i>DANH MỤC</span>
+        <i class="fa-solid fa-xmark" onclick="toggleMenu()"></i>
+    </div>
+    <ul class="sidebar-menu">
+        <li><a id="nav-home" class="active" onclick="switchPage('home')"><i class="fa-solid fa-house"></i> Trang Chủ</a></li>
+        <li><a id="nav-dapan" onclick="switchPage('dapan')"><i class="fa-solid fa-circle-check"></i> Đáp Án</a></li>
+        <li><a id="nav-guide" onclick="switchPage('guide')"><i class="fa-solid fa-book"></i> Hướng Dẫn Chơi</a></li>
+        <li><a onclick="openDiscord()"><i class="fa-brands fa-discord"></i> Hỗ Trợ Discord</a></li>
+    </ul>
+</div>
+
+<!-- ===== HEADER ===== -->
+<div class="topbar">
+    <button class="menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="logo"><i class="fa-solid fa-cube"></i> BetTa MC</div>
+    <div class="user-box">
+        <span id="userName">Phan Hưng</span>
+        <img src="Avatar.png" class="avatar" id="userAvatar" alt="avatar" onclick="openProfile()" title="Đổi avatar & tên">
+    </div>
+</div>
+
+<div class="container">
+    
+    <!-- 1. TRANG CHỦ -->
+    <div id="page-home" class="page active">
+        <div class="server-card">
+            <img src="N8XHz.jpg" class="server-icon" alt="server">
+            <div>
+                <div class="server-name"><span class="status-dot"></span>IP: bettamc.nvnmc.asia:26085</div>
+                <div class="server-info">Hỗ trợ: PC & PE (Bedrock)</div>
+                <div class="server-ver">Phiên bản: 1.16.x - 1.20.x</div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-copy" onclick="copyIP()"><i class="fa-solid fa-copy"></i> Sao chép IP</button>
+            <button class="btn btn-discord" onclick="openDiscord()"><i class="fa-brands fa-discord"></i> Discord</button>
+        </div>
+    </div>
+
+    <!-- 2. TRANG ĐÁP ÁN -->
+    <div id="page-dapan" class="page">
+        <div class="content-box">
+            <h2><i class="fa-solid fa-circle-check"></i> Đáp Án Câu Hỏi</h2>
+            <div class="qa-item">
+                <div class="qa-q">Câu 1: Cách nhận Kit khởi đầu?</div>
+                <div class="qa-a">Gõ lệnh <code style="color:#55ff55;">/kit start</code> ngay khi vào máy chủ.</div>
+            </div>
+            <div class="qa-item">
+                <div class="qa-q">Câu 2: Làm sao để bảo vệ đất (Claim)?</div>
+                <div class="qa-a">Sử dụng xẻng vàng hoặc dùng lệnh <code style="color:#55ff55;">/lands create</code> để tạo vùng đất cá nhân.</div>
+            </div>
+            <div class="qa-item">
+                <div class="qa-q">Câu 3: Đổi xu / nạp thẻ ở đâu?</div>
+                <div class="qa-a">Liên hệ ADMIN qua kênh Discord hoặc gõ <code style="color:#55ff55;">/napthe</code> trong game.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TRANG HƯỚNG DẪN CHƠI -->
+    <div id="page-guide" class="page">
+        <div class="content-box">
+            <h2><i class="fa-solid fa-book"></i> Hướng Dẫn Cho Tân Thủ</h2>
+            <div class="qa-item">
+                <div class="qa-q">Bước 1: Kết nối Server</div>
+                <div class="qa-a">
+                    • <b>PC (Java):</b> Nhập IP <code style="color:#55ff55;">bettamc.nvnmc.asia:26085</code><br>
+                    • <b>Mobile (Bedrock):</b> IP <code style="color:#55ff55;">bettamc.nvnmc.asia</code> | Port <code style="color:#55ff55;">26085</code>
+                </div>
+            </div>
+            <div class="qa-item">
+                <div class="qa-q">Bước 2: Đăng ký tài khoản</div>
+                <div class="qa-a">Lần đầu vào game gõ: <code style="color:#55ff55;">/register [MậtKhẩu] [XácNhậnMậtKhẩu]</code></div>
+            </div>
+            <div class="qa-item">
+                <div class="qa-q">Bước 3: Đăng nhập các lần sau</div>
+                <div class="qa-a">Gõ: <code style="color:#55ff55;">/login [MậtKhẩu]</code></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">© 2026 bettamc.nvnmc.asia — Chơi vui vẻ, không hack cheat!</div>
+
+<!-- ===== POPUP ĐỔI AVATAR & TÊN ===== -->
+<div class="modal-overlay" id="profileModal">
+    <div class="modal">
+        <h3><i class="fa-solid fa-user-gear"></i> Cài Đặt Hồ Sơ</h3>
+        <div class="avatar-preview-wrap">
+            <img src="Avatar.png" class="avatar-preview" id="avatarPreview" alt="preview">
+        </div>
+        <div class="form-group">
+            <label>TÊN HIỂN THỊ</label>
+            <input type="text" id="nameInput" placeholder="Nhập tên của bạn..." maxlength="20">
+        </div>
+        <div class="form-group">
+            <label>AVATAR</label>
+            <button class="upload-btn" onclick="document.getElementById('avatarInput').click()">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Chọn ảnh từ máy
+            </button>
+            <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="previewAvatar(event)">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeProfile()">Hủy</button>
+            <button class="btn btn-save" onclick="saveProfile()"><i class="fa-solid fa-floppy-disk"></i> Lưu</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    /* ===== CƠ CHẾ CHUYỂN TRANG (SPA) ===== */
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.querySelectorAll('.sidebar-menu a').forEach(nav => nav.classList.remove('active'));
+
+        const targetPage = document.getElementById('page-' + pageId);
+        const targetNav = document.getElementById('nav-' + pageId);
+        
+        if(targetPage) targetPage.classList.add('active');
+        if(targetNav) targetNav.classList.add('active');
+
+        closeMenu();
+    }
+
+    /* ===== MỞ DISCORD ===== */
+    function openDiscord() {
+        closeMenu();
+        window.open('https://discord.gg/23vzEpy2jC', '_blank');
+    }
+
+    /* ===== MENU TRƯỢT ===== */
+    function toggleMenu() {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+    }
+    function closeMenu() {
+        document.getElementById('sidebar').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    /* ===== SAO CHÉP IP MỚI ===== */
+    function copyIP() {
+        navigator.clipboard.writeText('bettamc.nvnmc.asia:26085').then(() => {
+            showToast('<i class="fa-solid fa-check"></i> Đã sao chép IP!');
+        });
+    }
+
+    /* ===== TOAST ===== */
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerHTML = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    /* ===== HỒ SƠ ===== */
+    let tempAvatar = null;
+
+    function openProfile() {
+        const savedName = localStorage.getItem('hp_name');
+        const savedAvatar = localStorage.getItem('hp_avatar');
+        document.getElementById('nameInput').value = savedName || '';
+        document.getElementById('avatarPreview').src = tempAvatar || savedAvatar || 'Avatar.png';
+        document.getElementById('profileModal').classList.add('show');
+    }
+
+    function closeProfile() {
+        document.getElementById('profileModal').classList.remove('show');
+        tempAvatar = null;
+    }
+
+    function previewAvatar(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('<i class="fa-solid fa-triangle-exclamation"></i> Ảnh quá lớn! Chọn dưới 2MB');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            tempAvatar = e.target.result;
+            document.getElementById('avatarPreview').src = tempAvatar;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveProfile() {
+        const name = document.getElementById('nameInput').value.trim();
+        if (name) {
+            localStorage.setItem('hp_name', name);
+            document.getElementById('userName').textContent = name;
+        }
+        if (tempAvatar) {
+            localStorage.setItem('hp_avatar', tempAvatar);
+            document.getElementById('userAvatar').src = tempAvatar;
+        }
+        closeProfile();
+        showToast('<i class="fa-solid fa-check"></i> Đã lưu hồ sơ!');
+    }
+
+    (function loadProfile() {
+        const savedName = localStorage.getItem('hp_name');
+        const savedAvatar = localStorage.getItem('hp_avatar');
+        if (savedName) document.getElementById('userName').textContent = savedName;
+        if (savedAvatar) document.getElementById('userAvatar').src = savedAvatar;
+    })();
+
+    document.getElementById('profileModal').addEventListener('click', function(e) {
+        if (e.target === this) closeProfile();
+    });
+</script>
+
+</body>
+</html>
